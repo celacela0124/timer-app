@@ -4,117 +4,283 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>タイマー</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;600&display=swap" rel="stylesheet">
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-      background: #1a1a2e;
-      color: #eee;
-      display: flex;
-      justify-content: center;
-      align-items: center;
+      font-family: 'Inter', -apple-system, sans-serif;
       min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #0d0d1a;
+      overflow: hidden;
     }
 
-    .container {
+    /* 背景グラデーション球 */
+    body::before, body::after {
+      content: '';
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: 0.35;
+      pointer-events: none;
+    }
+    body::before {
+      width: 500px; height: 500px;
+      background: radial-gradient(circle, #5e35b1, transparent);
+      top: -100px; left: -100px;
+    }
+    body::after {
+      width: 400px; height: 400px;
+      background: radial-gradient(circle, #1565c0, transparent);
+      bottom: -80px; right: -80px;
+    }
+
+    .card {
+      position: relative;
+      background: rgba(255,255,255,0.04);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 32px;
+      padding: 48px 52px 44px;
       text-align: center;
-      padding: 40px;
+      width: 420px;
+      box-shadow: 0 24px 60px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1);
+    }
+
+    h1 {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.3);
+      margin-bottom: 36px;
+    }
+
+    /* リングエリア */
+    .ring-wrap {
+      position: relative;
+      width: 240px;
+      height: 240px;
+      margin: 0 auto 36px;
+    }
+
+    .ring-wrap svg {
+      transform: rotate(-90deg);
+      width: 100%;
+      height: 100%;
+    }
+
+    .ring-bg {
+      fill: none;
+      stroke: rgba(255,255,255,0.06);
+      stroke-width: 6;
+    }
+
+    .ring-prog {
+      fill: none;
+      stroke: url(#ringGrad);
+      stroke-width: 6;
+      stroke-linecap: round;
+      stroke-dasharray: 691;   /* 2π×110 */
+      stroke-dashoffset: 0;
+      transition: stroke-dashoffset 0.9s ease, stroke 0.4s;
+    }
+
+    .ring-prog.warning { stroke: url(#warnGrad); }
+    .ring-prog.danger  { stroke: url(#dangerGrad); }
+
+    .ring-center {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
     }
 
     .display {
-      font-size: 96px;
+      font-size: 52px;
       font-weight: 200;
-      letter-spacing: 4px;
+      letter-spacing: 3px;
       font-variant-numeric: tabular-nums;
-      color: #e0e0e0;
-      margin-bottom: 40px;
-      transition: color 0.3s;
+      color: #fff;
+      transition: color 0.4s;
+      line-height: 1;
     }
 
-    .display.warning { color: #f0a500; }
-    .display.danger  { color: #e05252; }
+    .display.warning { color: #ffb74d; }
+    .display.danger  { color: #ef5350; }
 
+    .status-label {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.25);
+      min-height: 14px;
+    }
+
+    /* 入力 */
     .input-row {
       display: flex;
       justify-content: center;
-      gap: 12px;
-      margin-bottom: 36px;
+      gap: 10px;
+      margin-bottom: 28px;
     }
 
     .input-group {
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 4px;
+      gap: 6px;
     }
 
     .input-group label {
-      font-size: 12px;
-      color: #888;
-      text-transform: uppercase;
-      letter-spacing: 1px;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.15em;
+      color: rgba(255,255,255,0.3);
     }
 
     .input-group input {
-      width: 72px;
-      padding: 8px;
-      font-size: 22px;
+      width: 68px;
+      padding: 10px 6px;
+      font-size: 20px;
+      font-family: 'Inter', sans-serif;
+      font-weight: 300;
       text-align: center;
-      background: #16213e;
-      border: 1px solid #333;
-      border-radius: 8px;
-      color: #eee;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px;
+      color: #fff;
       outline: none;
+      transition: border-color 0.2s, background 0.2s;
     }
 
-    .input-group input:focus { border-color: #5e81f4; }
+    .input-group input:focus {
+      border-color: rgba(126,87,194,0.8);
+      background: rgba(126,87,194,0.1);
+    }
 
+    input[type=number]::-webkit-inner-spin-button { display: none; }
+
+    /* ボタン */
     .buttons {
       display: flex;
-      gap: 12px;
+      gap: 10px;
       justify-content: center;
     }
 
     button {
-      padding: 12px 28px;
-      font-size: 16px;
+      padding: 12px 0;
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.05em;
       border: none;
-      border-radius: 8px;
+      border-radius: 14px;
       cursor: pointer;
-      transition: opacity 0.2s, transform 0.1s;
+      transition: opacity 0.2s, transform 0.12s, box-shadow 0.2s;
+      flex: 1;
+      max-width: 110px;
     }
 
-    button:active { transform: scale(0.96); }
+    button:hover  { opacity: 0.88; }
+    button:active { transform: scale(0.95); }
 
-    #btnStart  { background: #5e81f4; color: #fff; }
-    #btnPause  { background: #f0a500; color: #fff; display: none; }
-    #btnReset  { background: #333; color: #ccc; }
+    #btnStart {
+      background: linear-gradient(135deg, #7e57c2, #5e35b1);
+      color: #fff;
+      box-shadow: 0 6px 20px rgba(94,53,177,0.5);
+    }
 
+    #btnPause {
+      background: linear-gradient(135deg, #ffb74d, #f57c00);
+      color: #fff;
+      box-shadow: 0 6px 20px rgba(245,124,0,0.45);
+      display: none;
+    }
+
+    #btnReset {
+      background: rgba(255,255,255,0.07);
+      color: rgba(255,255,255,0.55);
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+
+    /* 完了メッセージ */
     .message {
-      margin-top: 28px;
-      font-size: 20px;
-      color: #e05252;
-      min-height: 28px;
+      margin-top: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      color: #ef5350;
+      min-height: 20px;
+      animation: pulse 1s ease-in-out infinite alternate;
+    }
+
+    .message:empty { animation: none; }
+
+    @keyframes pulse {
+      from { opacity: 1; }
+      to   { opacity: 0.4; }
+    }
+
+    /* ショートカットヒント */
+    .hint {
+      margin-top: 24px;
+      font-size: 10px;
+      color: rgba(255,255,255,0.15);
+      letter-spacing: 0.1em;
     }
   </style>
 </head>
 <body>
-<div class="container">
-  <div class="display" id="display">00:00:00</div>
+<div class="card">
+  <h1>Timer</h1>
+
+  <div class="ring-wrap">
+    <svg viewBox="0 0 240 240">
+      <defs>
+        <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#9c6fff"/>
+          <stop offset="100%" stop-color="#5e35b1"/>
+        </linearGradient>
+        <linearGradient id="warnGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#ffcc80"/>
+          <stop offset="100%" stop-color="#f57c00"/>
+        </linearGradient>
+        <linearGradient id="dangerGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#ff8a80"/>
+          <stop offset="100%" stop-color="#c62828"/>
+        </linearGradient>
+      </defs>
+      <circle class="ring-bg"   cx="120" cy="120" r="110"/>
+      <circle class="ring-prog" id="ringProg" cx="120" cy="120" r="110"/>
+    </svg>
+    <div class="ring-center">
+      <div class="display" id="display">00:00:00</div>
+      <div class="status-label" id="statusLabel"></div>
+    </div>
+  </div>
 
   <div class="input-row">
     <div class="input-group">
       <label>時間</label>
-      <input type="number" id="inputH" min="0" max="99" value="0" placeholder="0">
+      <input type="number" id="inputH" min="0" max="99" value="0">
     </div>
     <div class="input-group">
       <label>分</label>
-      <input type="number" id="inputM" min="0" max="59" value="5" placeholder="0">
+      <input type="number" id="inputM" min="0" max="59" value="5">
     </div>
     <div class="input-group">
       <label>秒</label>
-      <input type="number" id="inputS" min="0" max="59" value="0" placeholder="0">
+      <input type="number" id="inputS" min="0" max="59" value="0">
     </div>
   </div>
 
@@ -125,49 +291,79 @@
   </div>
 
   <div class="message" id="message"></div>
+  <div class="hint">Space: 開始 / 一時停止 &nbsp;|&nbsp; R: リセット</div>
 </div>
 
 <script>
-  let remaining = 0;
-  let interval = null;
-  let running = false;
+  let remaining = 0, total = 0;
+  let interval = null, running = false;
 
-  const display  = document.getElementById('display');
-  const message  = document.getElementById('message');
-  const btnStart = document.getElementById('btnStart');
-  const btnPause = document.getElementById('btnPause');
-  const btnReset = document.getElementById('btnReset');
+  const display    = document.getElementById('display');
+  const message    = document.getElementById('message');
+  const statusLabel= document.getElementById('statusLabel');
+  const ringProg   = document.getElementById('ringProg');
+  const btnStart   = document.getElementById('btnStart');
+  const btnPause   = document.getElementById('btnPause');
+  const btnReset   = document.getElementById('btnReset');
+
+  const CIRCUMFERENCE = 2 * Math.PI * 110; // ≈ 691
 
   function pad(n) { return String(n).padStart(2, '0'); }
 
   function format(secs) {
-    const h = Math.floor(secs / 3600);
-    const m = Math.floor((secs % 3600) / 60);
-    const s = secs % 60;
-    return `${pad(h)}:${pad(m)}:${pad(s)}`;
+    return `${pad(Math.floor(secs/3600))}:${pad(Math.floor((secs%3600)/60))}:${pad(secs%60)}`;
+  }
+
+  function updateRing() {
+    const ratio = total > 0 ? remaining / total : 1;
+    ringProg.style.strokeDashoffset = CIRCUMFERENCE * (1 - ratio);
   }
 
   function updateDisplay() {
     display.textContent = format(remaining);
     display.className = 'display';
-    if (remaining <= 10) display.classList.add('danger');
-    else if (remaining <= 30) display.classList.add('warning');
+    ringProg.className = 'ring-prog';
+    if (remaining <= 10) {
+      display.classList.add('danger');
+      ringProg.classList.add('danger');
+    } else if (remaining <= 30) {
+      display.classList.add('warning');
+      ringProg.classList.add('warning');
+    }
+    updateRing();
+  }
+
+  function beep() {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      [0, 0.22, 0.44].forEach(t => {
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.connect(g); g.connect(ctx.destination);
+        o.type = 'sine';
+        o.frequency.setValueAtTime(880, ctx.currentTime + t);
+        g.gain.setValueAtTime(0.4, ctx.currentTime + t);
+        g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t + 0.18);
+        o.start(ctx.currentTime + t);
+        o.stop(ctx.currentTime + t + 0.2);
+      });
+    } catch(e) {}
   }
 
   function start() {
-    const h = parseInt(document.getElementById('inputH').value) || 0;
-    const m = parseInt(document.getElementById('inputM').value) || 0;
-    const s = parseInt(document.getElementById('inputS').value) || 0;
-
     if (!running) {
       if (remaining === 0) {
-        remaining = h * 3600 + m * 60 + s;
+        const h = parseInt(document.getElementById('inputH').value) || 0;
+        const m = parseInt(document.getElementById('inputM').value) || 0;
+        const s = parseInt(document.getElementById('inputS').value) || 0;
+        remaining = total = h*3600 + m*60 + s;
         if (remaining === 0) return;
+        updateRing();
       }
       message.textContent = '';
     }
-
     running = true;
+    statusLabel.textContent = '計測中';
     btnStart.style.display = 'none';
     btnPause.style.display = '';
 
@@ -181,11 +377,8 @@
         btnPause.style.display = 'none';
         btnStart.textContent = 'スタート';
         message.textContent = '時間になりました！';
-        display.classList.add('danger');
-        new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAA' +
-          'EAAQAARKwAAIhYAQACABAAZGF0YQoGAACBhYqFbF1fdJiVkHVWS0d' +
-          'Ga3x8c2ZeXGBmbXBtZ2JiZ29+ioyHgHJoY2NobnJ1dXV3eXt8fHp2c' +
-          'G1ucHN3e3+Cf3x4dHFxcnN0dXZ3d3d3d3Z2dnZ2dnZ2dnZ2').play().catch(() => {});
+        statusLabel.textContent = '完了';
+        beep();
       }
     }, 1000);
   }
@@ -193,6 +386,7 @@
   function pause() {
     clearInterval(interval);
     running = false;
+    statusLabel.textContent = '一時停止';
     btnStart.style.display = '';
     btnStart.textContent = '再開';
     btnPause.style.display = 'none';
@@ -200,11 +394,13 @@
 
   function reset() {
     clearInterval(interval);
-    running = false;
-    remaining = 0;
+    running = false; remaining = 0; total = 0;
     message.textContent = '';
+    statusLabel.textContent = '';
     display.className = 'display';
     display.textContent = '00:00:00';
+    ringProg.className = 'ring-prog';
+    ringProg.style.strokeDashoffset = 0;
     btnStart.style.display = '';
     btnStart.textContent = 'スタート';
     btnPause.style.display = 'none';
@@ -215,6 +411,7 @@
   btnReset.addEventListener('click', reset);
 
   document.addEventListener('keydown', e => {
+    if (e.target.tagName === 'INPUT') return;
     if (e.code === 'Space') { e.preventDefault(); running ? pause() : start(); }
     if (e.code === 'KeyR') reset();
   });
