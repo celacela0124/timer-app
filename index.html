@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>タイマー</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #1a1a2e;
+      color: #eee;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .container {
+      text-align: center;
+      padding: 40px;
+    }
+
+    .display {
+      font-size: 96px;
+      font-weight: 200;
+      letter-spacing: 4px;
+      font-variant-numeric: tabular-nums;
+      color: #e0e0e0;
+      margin-bottom: 40px;
+      transition: color 0.3s;
+    }
+
+    .display.warning { color: #f0a500; }
+    .display.danger  { color: #e05252; }
+
+    .input-row {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      margin-bottom: 36px;
+    }
+
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .input-group label {
+      font-size: 12px;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .input-group input {
+      width: 72px;
+      padding: 8px;
+      font-size: 22px;
+      text-align: center;
+      background: #16213e;
+      border: 1px solid #333;
+      border-radius: 8px;
+      color: #eee;
+      outline: none;
+    }
+
+    .input-group input:focus { border-color: #5e81f4; }
+
+    .buttons {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+    }
+
+    button {
+      padding: 12px 28px;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+    }
+
+    button:active { transform: scale(0.96); }
+
+    #btnStart  { background: #5e81f4; color: #fff; }
+    #btnPause  { background: #f0a500; color: #fff; display: none; }
+    #btnReset  { background: #333; color: #ccc; }
+
+    .message {
+      margin-top: 28px;
+      font-size: 20px;
+      color: #e05252;
+      min-height: 28px;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="display" id="display">00:00:00</div>
+
+  <div class="input-row">
+    <div class="input-group">
+      <label>時間</label>
+      <input type="number" id="inputH" min="0" max="99" value="0" placeholder="0">
+    </div>
+    <div class="input-group">
+      <label>分</label>
+      <input type="number" id="inputM" min="0" max="59" value="5" placeholder="0">
+    </div>
+    <div class="input-group">
+      <label>秒</label>
+      <input type="number" id="inputS" min="0" max="59" value="0" placeholder="0">
+    </div>
+  </div>
+
+  <div class="buttons">
+    <button id="btnStart">スタート</button>
+    <button id="btnPause">一時停止</button>
+    <button id="btnReset">リセット</button>
+  </div>
+
+  <div class="message" id="message"></div>
+</div>
+
+<script>
+  let remaining = 0;
+  let interval = null;
+  let running = false;
+
+  const display  = document.getElementById('display');
+  const message  = document.getElementById('message');
+  const btnStart = document.getElementById('btnStart');
+  const btnPause = document.getElementById('btnPause');
+  const btnReset = document.getElementById('btnReset');
+
+  function pad(n) { return String(n).padStart(2, '0'); }
+
+  function format(secs) {
+    const h = Math.floor(secs / 3600);
+    const m = Math.floor((secs % 3600) / 60);
+    const s = secs % 60;
+    return `${pad(h)}:${pad(m)}:${pad(s)}`;
+  }
+
+  function updateDisplay() {
+    display.textContent = format(remaining);
+    display.className = 'display';
+    if (remaining <= 10) display.classList.add('danger');
+    else if (remaining <= 30) display.classList.add('warning');
+  }
+
+  function start() {
+    const h = parseInt(document.getElementById('inputH').value) || 0;
+    const m = parseInt(document.getElementById('inputM').value) || 0;
+    const s = parseInt(document.getElementById('inputS').value) || 0;
+
+    if (!running) {
+      if (remaining === 0) {
+        remaining = h * 3600 + m * 60 + s;
+        if (remaining === 0) return;
+      }
+      message.textContent = '';
+    }
+
+    running = true;
+    btnStart.style.display = 'none';
+    btnPause.style.display = '';
+
+    interval = setInterval(() => {
+      remaining--;
+      updateDisplay();
+      if (remaining <= 0) {
+        clearInterval(interval);
+        running = false;
+        btnStart.style.display = '';
+        btnPause.style.display = 'none';
+        btnStart.textContent = 'スタート';
+        message.textContent = '時間になりました！';
+        display.classList.add('danger');
+        new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAA' +
+          'EAAQAARKwAAIhYAQACABAAZGF0YQoGAACBhYqFbF1fdJiVkHVWS0d' +
+          'Ga3x8c2ZeXGBmbXBtZ2JiZ29+ioyHgHJoY2NobnJ1dXV3eXt8fHp2c' +
+          'G1ucHN3e3+Cf3x4dHFxcnN0dXZ3d3d3d3Z2dnZ2dnZ2dnZ2').play().catch(() => {});
+      }
+    }, 1000);
+  }
+
+  function pause() {
+    clearInterval(interval);
+    running = false;
+    btnStart.style.display = '';
+    btnStart.textContent = '再開';
+    btnPause.style.display = 'none';
+  }
+
+  function reset() {
+    clearInterval(interval);
+    running = false;
+    remaining = 0;
+    message.textContent = '';
+    display.className = 'display';
+    display.textContent = '00:00:00';
+    btnStart.style.display = '';
+    btnStart.textContent = 'スタート';
+    btnPause.style.display = 'none';
+  }
+
+  btnStart.addEventListener('click', start);
+  btnPause.addEventListener('click', pause);
+  btnReset.addEventListener('click', reset);
+
+  document.addEventListener('keydown', e => {
+    if (e.code === 'Space') { e.preventDefault(); running ? pause() : start(); }
+    if (e.code === 'KeyR') reset();
+  });
+</script>
+</body>
+</html>
